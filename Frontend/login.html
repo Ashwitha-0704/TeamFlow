@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamFlow - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-logo">
+            <h1><i class="fas fa-people-group"></i> TeamFlow</h1>
+            <p>Project Management System</p>
+        </div>
+
+        <div id="errorAlert" class="alert alert-danger" style="display: none;">
+            Invalid email or password. Please try again.
+        </div>
+        <div id="logoutAlert" class="alert alert-success" style="display: none;">
+            You have been logged out successfully.
+        </div>
+
+        <form id="loginForm">
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="email" id="username" class="form-control" placeholder="Enter email" required>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2">
+                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <small class="text-muted">Demo Accounts:</small>
+            <div class="mt-2">
+                <small class="d-block text-muted">admin@teamflow.com / admin123</small>
+                <small class="d-block text-muted">manager@teamflow.com / manager123</small>
+                <small class="d-block text-muted">developer@teamflow.com / dev123</small>
+                <small class="d-block text-muted">reviewer@teamflow.com / review123</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+    // Handle logout URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('logout')) {
+        document.getElementById('logoutAlert').style.display = 'block';
+    }
+    if (params.get('error')) {
+        document.getElementById('errorAlert').style.display = 'block';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorAlert = document.getElementById('errorAlert');
+        const logoutAlert = document.getElementById('logoutAlert');
+
+        errorAlert.style.display = 'none';
+        logoutAlert.style.display = 'none';
+
+        try {
+            const data = await apiCall('/auth/login', 'POST', { email, password });
+            if (data && data.message === 'Login successful') {
+                window.location.href = 'dashboard.html';
+            } else {
+                errorAlert.style.display = 'block';
+            }
+        } catch (err) {
+            console.error('Login error', err);
+            errorAlert.textContent = err.message || 'Invalid email or password.';
+            errorAlert.style.display = 'block';
+        }
+    });
+</script>
+</body>
+</html>

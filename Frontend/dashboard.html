@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamFlow - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-wrapper">
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h2><i class="fas fa-people-group"></i> TeamFlow</h2>
+            <small>Project Management</small>
+        </div>
+        <div class="sidebar-nav">
+            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="projects.html"><i class="fas fa-folder-open"></i> Projects</a>
+            <a href="tasks.html"><i class="fas fa-tasks"></i> Tasks</a>
+            <a href="incidents.html"><i class="fas fa-bug"></i> Incidents</a>
+            <a href="reviews.html"><i class="fas fa-check-double"></i> Reviews</a>
+            <a href="users.html"><i class="fas fa-users"></i> Users</a>
+            <a href="notifications.html"><i class="fas fa-bell"></i> Notifications
+                <span id="notifBadge" class="badge bg-danger ms-1" style="display:none">0</span>
+            </a>
+            <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
+            <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="top-bar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1>Dashboard</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">User</span>
+                <span id="userRole" class="user-badge">Role</span>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><h3 id="totalProjects">-</h3><p>Total Projects</p></div>
+            <div class="stat-card info"><h3 id="totalTasks">-</h3><p>Total Tasks</p></div>
+            <div class="stat-card success"><h3 id="completedTasks">-</h3><p>Completed Tasks</p></div>
+            <div class="stat-card warning"><h3 id="pendingTasks">-</h3><p>Pending Tasks</p></div>
+            <div class="stat-card danger"><h3 id="totalIncidents">-</h3><p>Incidents</p></div>
+            <div class="stat-card"><h3 id="totalUsers">-</h3><p>Users</p></div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="content-card">
+                    <h5><i class="fas fa-chart-pie me-2"></i>Tasks by Status</h5>
+                    <div class="chart-container"><canvas id="taskStatusChart"></canvas></div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="content-card">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Incidents by Severity</h5>
+                    <div class="chart-container"><canvas id="incidentSeverityChart"></canvas></div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="content-card">
+                    <h5><i class="fas fa-folder me-2"></i>Projects by Status</h5>
+                    <div class="chart-container"><canvas id="projectStatusChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <h5><i class="fas fa-clock me-2"></i>Recent Activities</h5>
+            <div id="activityFeed"></div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+    (function initDashboard() {
+        if (typeof Chart !== 'undefined') {
+            loadDashboard();
+            return;
+        }
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+        s.onload = loadDashboard;
+        document.head.appendChild(s);
+    })();
+
+    let charts = {};
+
+    async function loadDashboard() {
+        try {
+            const data = await apiCall('/dashboard');
+            document.getElementById('totalProjects').textContent = data.totalProjects;
+            document.getElementById('totalTasks').textContent = data.totalTasks;
+            document.getElementById('completedTasks').textContent = data.completedTasks;
+            document.getElementById('pendingTasks').textContent = data.pendingTasks;
+            document.getElementById('totalIncidents').textContent = data.totalIncidents;
+            document.getElementById('totalUsers').textContent = data.totalUsers;
+
+            renderChart('taskStatusChart', data.tasksByStatus, ['#64748b','#3b82f6','#f59e0b','#10b981','#ef4444']);
+            renderChart('incidentSeverityChart', data.incidentsBySeverity, ['#64748b','#3b82f6','#f59e0b','#ef4444']);
+            renderChart('projectStatusChart', data.projectsByStatus, ['#818cf8','#10b981','#f59e0b','#3b82f6','#ef4444']);
+
+            const feed = document.getElementById('activityFeed');
+            if (!data.recentActivities || data.recentActivities.length === 0) {
+                feed.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No recent activities</p></div>';
+            } else {
+                feed.innerHTML = data.recentActivities.map(a => `
+                    <div class="activity-item">
+                        <div class="activity-icon ${a.type.toLowerCase()}">
+                            <i class="fas fa-${a.type === 'TASK' ? 'tasks' : a.type === 'INCIDENT' ? 'bug' : 'check-circle'}"></i>
+                        </div>
+                        <div class="activity-text">
+                            <p>${a.description}</p>
+                            <small>${a.userName} &bull; ${formatDateTime(a.timestamp)}</small>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {
+            showAlert(e.message, 'danger');
+        }
+    }
+
+    function renderChart(canvasId, dataMap, colors) {
+        const ctx = document.getElementById(canvasId);
+        if (charts[canvasId]) charts[canvasId].destroy();
+        charts[canvasId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(dataMap).map(k => k.replace(/_/g, ' ')),
+                datasets: [{ data: Object.values(dataMap), backgroundColor: colors }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+</script>
+</body>
+</html>

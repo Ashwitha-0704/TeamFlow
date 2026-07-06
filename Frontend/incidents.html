@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamFlow - Incidents</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-wrapper">
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h2><i class="fas fa-people-group"></i> TeamFlow</h2>
+            <small>Project Management</small>
+        </div>
+        <div class="sidebar-nav">
+            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="projects.html"><i class="fas fa-folder-open"></i> Projects</a>
+            <a href="tasks.html"><i class="fas fa-tasks"></i> Tasks</a>
+            <a href="incidents.html"><i class="fas fa-bug"></i> Incidents</a>
+            <a href="reviews.html"><i class="fas fa-check-double"></i> Reviews</a>
+            <a href="users.html"><i class="fas fa-users"></i> Users</a>
+            <a href="notifications.html"><i class="fas fa-bell"></i> Notifications
+                <span id="notifBadge" class="badge bg-danger ms-1" style="display:none">0</span>
+            </a>
+            <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
+            <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="top-bar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1>Incidents</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">User</span>
+                <span id="userRole" class="user-badge">Role</span>
+            </div>
+        </div>
+
+        <!-- Incidents Content -->
+        <div class="d-flex justify-content-between mb-3">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#incidentModal" onclick="openCreateModal()">
+                <i class="fas fa-plus me-1"></i> Report Incident
+            </button>
+        </div>
+        <div class="content-card">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>Title</th><th>Project</th><th>Severity</th>
+                        <th>Reported By</th><th>Engineer</th><th>Status</th><th>Created</th><th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="incidentTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Incident Modal -->
+        <div class="modal fade" id="incidentModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="incidentModalTitle">Report Incident</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="incidentId">
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" id="incidentTitle" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea id="incidentDesc" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Project</label>
+                                <select id="incidentProject" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Severity</label>
+                                <select id="incidentSeverity" class="form-select">
+                                    <option value="LOW">Low</option>
+                                    <option value="MEDIUM" selected>Medium</option>
+                                    <option value="HIGH">High</option>
+                                    <option value="CRITICAL">Critical</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Assigned Engineer</label>
+                                <select id="incidentEngineer" class="form-select">
+                                    <option value="">Unassigned</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Status</label>
+                                <select id="incidentStatus" class="form-select">
+                                    <option value="OPEN">Open</option>
+                                    <option value="IN_PROGRESS">In Progress</option>
+                                    <option value="RESOLVED">Resolved</option>
+                                    <option value="CLOSED">Closed</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveIncident()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+    async function loadIncidents() {
+        try {
+            const incidents = await apiCall('/incidents');
+            const tbody = document.getElementById('incidentTable');
+            if (!incidents || incidents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No incidents found</td></tr>';
+                return;
+            }
+            tbody.innerHTML = incidents.map(i => `
+                <tr>
+                    <td>${i.id}</td>
+                    <td><strong>${i.title}</strong></td>
+                    <td>${i.projectName}</td>
+                    <td>${priorityBadge(i.severity)}</td>
+                    <td>${i.reportedByName}</td>
+                    <td>${i.assignedEngineerName || '-'}</td>
+                    <td>${statusBadge(i.status)}</td>
+                    <td>${formatDateTime(i.createdDate)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary btn-action" onclick="editIncident(${i.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger btn-action" onclick="deleteIncident(${i.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    async function loadDropdowns() {
+        try {
+            const projects = await apiCall('/projects');
+            const users = await apiCall('/users');
+            document.getElementById('incidentProject').innerHTML = projects.map(p => `<option value="${p.id}">${p.projectName}</option>`).join('');
+            document.getElementById('incidentEngineer').innerHTML = '<option value="">Unassigned</option>' +
+                users.filter(u => u.role === 'DEVELOPER').map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        } catch (e) { console.error('Failed to load dropdowns', e); }
+    }
+
+    function openCreateModal() {
+        document.getElementById('incidentModalTitle').textContent = 'Report Incident';
+        document.getElementById('incidentId').value = '';
+        document.getElementById('incidentTitle').value = '';
+        document.getElementById('incidentDesc').value = '';
+        document.getElementById('incidentSeverity').value = 'MEDIUM';
+        document.getElementById('incidentStatus').value = 'OPEN';
+        document.getElementById('incidentEngineer').value = '';
+    }
+
+    async function editIncident(id) {
+        try {
+            const i = await apiCall('/incidents/' + id);
+            document.getElementById('incidentModalTitle').textContent = 'Edit Incident';
+            document.getElementById('incidentId').value = i.id;
+            document.getElementById('incidentTitle').value = i.title;
+            document.getElementById('incidentDesc').value = i.description || '';
+            document.getElementById('incidentProject').value = i.projectId;
+            document.getElementById('incidentSeverity').value = i.severity;
+            document.getElementById('incidentStatus').value = i.status;
+            document.getElementById('incidentEngineer').value = i.assignedEngineerId || '';
+            new bootstrap.Modal(document.getElementById('incidentModal')).show();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    async function saveIncident() {
+        const id = document.getElementById('incidentId').value;
+        const engVal = document.getElementById('incidentEngineer').value;
+        const body = {
+            title: document.getElementById('incidentTitle').value,
+            description: document.getElementById('incidentDesc').value,
+            projectId: parseInt(document.getElementById('incidentProject').value),
+            severity: document.getElementById('incidentSeverity').value,
+            status: document.getElementById('incidentStatus').value,
+            assignedEngineerId: engVal ? parseInt(engVal) : null
+        };
+        try {
+            if (id) await apiCall('/incidents/' + id, 'PUT', body);
+            else await apiCall('/incidents', 'POST', body);
+            bootstrap.Modal.getInstance(document.getElementById('incidentModal')).hide();
+            showAlert('Incident saved successfully');
+            loadIncidents();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    async function deleteIncident(id) {
+        if (!confirm('Delete this incident?')) return;
+        try {
+            await apiCall('/incidents/' + id, 'DELETE');
+            showAlert('Incident deleted');
+            loadIncidents();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { loadDropdowns(); loadIncidents(); });
+</script>
+</body>
+</html>

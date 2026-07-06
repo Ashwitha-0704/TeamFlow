@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamFlow - Tasks</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-wrapper">
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h2><i class="fas fa-people-group"></i> TeamFlow</h2>
+            <small>Project Management</small>
+        </div>
+        <div class="sidebar-nav">
+            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="projects.html"><i class="fas fa-folder-open"></i> Projects</a>
+            <a href="tasks.html"><i class="fas fa-tasks"></i> Tasks</a>
+            <a href="incidents.html"><i class="fas fa-bug"></i> Incidents</a>
+            <a href="reviews.html"><i class="fas fa-check-double"></i> Reviews</a>
+            <a href="users.html"><i class="fas fa-users"></i> Users</a>
+            <a href="notifications.html"><i class="fas fa-bell"></i> Notifications
+                <span id="notifBadge" class="badge bg-danger ms-1" style="display:none">0</span>
+            </a>
+            <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
+            <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="top-bar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1>Tasks</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">User</span>
+                <span id="userRole" class="user-badge">Role</span>
+            </div>
+        </div>
+
+        <!-- Tasks Content -->
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="openCreateModal()">
+                <i class="fas fa-plus me-1"></i> New Task
+            </button>
+            <div class="d-flex gap-2">
+                <select id="taskStatusFilter" class="form-select" style="width: 150px;" onchange="filterTasks()">
+                    <option value="">All Statuses</option>
+                    <option value="TODO">Todo</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="IN_REVIEW">In Review</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="BLOCKED">Blocked</option>
+                </select>
+                <input type="text" id="taskSearch" class="form-control" placeholder="Search tasks..." style="width: 200px;" oninput="filterTasks()">
+            </div>
+        </div>
+        <div class="content-card">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>Title</th><th>Project</th><th>Assigned To</th>
+                        <th>Priority</th><th>Status</th><th>Due Date</th><th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="taskTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Task Modal -->
+        <div class="modal fade" id="taskModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="taskModalTitle">New Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="taskId">
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Title</label>
+                                <input type="text" id="taskTitle" class="form-control" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Priority</label>
+                                <select id="taskPriority" class="form-select">
+                                    <option value="LOW">Low</option>
+                                    <option value="MEDIUM" selected>Medium</option>
+                                    <option value="HIGH">High</option>
+                                    <option value="CRITICAL">Critical</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea id="taskDesc" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Project</label>
+                                <select id="taskProject" class="form-select" required></select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Assigned To</label>
+                                <select id="taskAssignee" class="form-select">
+                                    <option value="">Unassigned</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Status</label>
+                                <select id="taskStatus" class="form-select">
+                                    <option value="TODO">Todo</option>
+                                    <option value="IN_PROGRESS">In Progress</option>
+                                    <option value="IN_REVIEW">In Review</option>
+                                    <option value="COMPLETED">Completed</option>
+                                    <option value="BLOCKED">Blocked</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Est. Hours</label>
+                                <input type="number" id="taskEstHours" class="form-control" step="0.5">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Actual Hours</label>
+                                <input type="number" id="taskActHours" class="form-control" step="0.5">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" id="taskDueDate" class="form-control">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Dependency Task</label>
+                                <select id="taskDependency" class="form-select">
+                                    <option value="">None</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTask()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+    let allTasks = [], allProjects = [], allUsers = [];
+
+    async function loadTasks() {
+        try {
+            allTasks = await apiCall('/tasks');
+            filterTasks();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    function filterTasks() {
+        const query = document.getElementById('taskSearch')?.value.toLowerCase() || '';
+        const status = document.getElementById('taskStatusFilter')?.value || '';
+        
+        const filtered = allTasks.filter(t => {
+            const matchesQuery = t.title.toLowerCase().includes(query) || 
+                                 (t.description && t.description.toLowerCase().includes(query)) ||
+                                 t.projectName.toLowerCase().includes(query) ||
+                                 (t.assignedToName && t.assignedToName.toLowerCase().includes(query));
+            const matchesStatus = !status || t.status === status;
+            return matchesQuery && matchesStatus;
+        });
+        
+        renderTasksList(filtered);
+    }
+
+    function renderTasksList(tasksToRender) {
+        const tbody = document.getElementById('taskTable');
+        if (tasksToRender.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No tasks found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = tasksToRender.map(t => `
+            <tr>
+                <td>${t.id}</td>
+                <td><strong>${t.title}</strong>${t.dependencyTaskTitle ? '<br><small class="text-muted">Depends on: ' + t.dependencyTaskTitle + '</small>' : ''}</td>
+                <td>${t.projectName}</td>
+                <td>${t.assignedToName || '-'}</td>
+                <td>${priorityBadge(t.priority)}</td>
+                <td>${statusBadge(t.status)}</td>
+                <td>${formatDate(t.dueDate)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary btn-action" onclick="editTask(${t.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger btn-action" onclick="deleteTask(${t.id})"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadDropdowns() {
+        try {
+            allProjects = await apiCall('/projects');
+            allUsers = await apiCall('/users');
+            document.getElementById('taskProject').innerHTML = allProjects.map(p => `<option value="${p.id}">${p.projectName}</option>`).join('');
+            document.getElementById('taskAssignee').innerHTML = '<option value="">Unassigned</option>' +
+                allUsers.filter(u => u.role === 'DEVELOPER').map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+            updateDependencyOptions();
+        } catch (e) { console.error('Failed to load dropdowns', e); }
+    }
+
+    function updateDependencyOptions() {
+        const projectId = document.getElementById('taskProject').value;
+        const taskId = document.getElementById('taskId').value;
+        const deps = allTasks.filter(t => t.projectId == projectId && t.id != taskId);
+        document.getElementById('taskDependency').innerHTML = '<option value="">None</option>' +
+            deps.map(t => `<option value="${t.id}">${t.title}</option>`).join('');
+    }
+
+    function openCreateModal() {
+        document.getElementById('taskModalTitle').textContent = 'New Task';
+        document.getElementById('taskId').value = '';
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskDesc').value = '';
+        document.getElementById('taskPriority').value = 'MEDIUM';
+        document.getElementById('taskStatus').value = 'TODO';
+        document.getElementById('taskEstHours').value = '';
+        document.getElementById('taskActHours').value = '';
+        document.getElementById('taskDueDate').value = '';
+        updateDependencyOptions();
+    }
+
+    async function editTask(id) {
+        try {
+            const t = await apiCall('/tasks/' + id);
+            document.getElementById('taskModalTitle').textContent = 'Edit Task';
+            document.getElementById('taskId').value = t.id;
+            document.getElementById('taskTitle').value = t.title;
+            document.getElementById('taskDesc').value = t.description || '';
+            document.getElementById('taskPriority').value = t.priority;
+            document.getElementById('taskStatus').value = t.status;
+            document.getElementById('taskProject').value = t.projectId;
+            document.getElementById('taskAssignee').value = t.assignedToId || '';
+            document.getElementById('taskEstHours').value = t.estimatedHours || '';
+            document.getElementById('taskActHours').value = t.actualHours || '';
+            document.getElementById('taskDueDate').value = t.dueDate || '';
+            updateDependencyOptions();
+            if (t.dependencyTaskId) document.getElementById('taskDependency').value = t.dependencyTaskId;
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    async function saveTask() {
+        const id = document.getElementById('taskId').value;
+        const assigneeVal = document.getElementById('taskAssignee').value;
+        const depVal = document.getElementById('taskDependency').value;
+        const body = {
+            title: document.getElementById('taskTitle').value,
+            description: document.getElementById('taskDesc').value,
+            priority: document.getElementById('taskPriority').value,
+            status: document.getElementById('taskStatus').value,
+            projectId: parseInt(document.getElementById('taskProject').value),
+            assignedToId: assigneeVal ? parseInt(assigneeVal) : null,
+            estimatedHours: parseFloat(document.getElementById('taskEstHours').value) || null,
+            actualHours: parseFloat(document.getElementById('taskActHours').value) || null,
+            dueDate: document.getElementById('taskDueDate').value || null,
+            dependencyTaskId: depVal ? parseInt(depVal) : null
+        };
+        try {
+            if (id) await apiCall('/tasks/' + id, 'PUT', body);
+            else await apiCall('/tasks', 'POST', body);
+            bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+            showAlert('Task saved successfully');
+            loadTasks();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    async function deleteTask(id) {
+        if (!confirm('Delete this task?')) return;
+        try {
+            await apiCall('/tasks/' + id, 'DELETE');
+            showAlert('Task deleted');
+            loadTasks();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    document.getElementById('taskProject')?.addEventListener('change', updateDependencyOptions);
+    document.addEventListener('DOMContentLoaded', () => { loadDropdowns(); loadTasks(); });
+</script>
+</body>
+</html>

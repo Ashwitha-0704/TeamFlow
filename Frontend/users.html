@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamFlow - Users</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-wrapper">
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h2><i class="fas fa-people-group"></i> TeamFlow</h2>
+            <small>Project Management</small>
+        </div>
+        <div class="sidebar-nav">
+            <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="projects.html"><i class="fas fa-folder-open"></i> Projects</a>
+            <a href="tasks.html"><i class="fas fa-tasks"></i> Tasks</a>
+            <a href="incidents.html"><i class="fas fa-bug"></i> Incidents</a>
+            <a href="reviews.html"><i class="fas fa-check-double"></i> Reviews</a>
+            <a href="users.html"><i class="fas fa-users"></i> Users</a>
+            <a href="notifications.html"><i class="fas fa-bell"></i> Notifications
+                <span id="notifBadge" class="badge bg-danger ms-1" style="display:none">0</span>
+            </a>
+            <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
+            <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="top-bar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1>Users</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">User</span>
+                <span id="userRole" class="user-badge">Role</span>
+            </div>
+        </div>
+
+        <!-- Users Content -->
+        <div class="d-flex justify-content-between mb-3">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openCreateModal()">
+                <i class="fas fa-plus me-1"></i> New User
+            </button>
+        </div>
+        <div class="content-card">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="userTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- User Modal -->
+        <div class="modal fade" id="userModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userModalTitle">New User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" id="userNameInput" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" id="userEmail" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" id="userPassword" class="form-control" placeholder="Min 6 characters">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select id="userRoleSelect" class="form-select">
+                                <option value="ADMIN">Admin</option>
+                                <option value="MANAGER">Manager</option>
+                                <option value="DEVELOPER">Developer</option>
+                                <option value="REVIEWER">Reviewer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveUser()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+    async function loadUsers() {
+        try {
+            const users = await apiCall('/users');
+            const tbody = document.getElementById('userTable');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No users found</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td><strong>${u.name}</strong></td>
+                    <td>${u.email}</td>
+                    <td><span class="user-badge">${u.role}</span></td>
+                    <td>${u.active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+                    <td>${formatDate(u.createdAt)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary btn-action" onclick="editUser(${u.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger btn-action" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    function openCreateModal() {
+        document.getElementById('userModalTitle').textContent = 'New User';
+        document.getElementById('userId').value = '';
+        document.getElementById('userNameInput').value = '';
+        document.getElementById('userEmail').value = '';
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userRoleSelect').value = 'DEVELOPER';
+    }
+
+    async function editUser(id) {
+        try {
+            const u = await apiCall('/users/' + id);
+            document.getElementById('userModalTitle').textContent = 'Edit User';
+            document.getElementById('userId').value = u.id;
+            document.getElementById('userNameInput').value = u.name;
+            document.getElementById('userEmail').value = u.email;
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userRoleSelect').value = u.role;
+            new bootstrap.Modal(document.getElementById('userModal')).show();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    async function saveUser() {
+        const id = document.getElementById('userId').value;
+        const body = {
+            name: document.getElementById('userNameInput').value,
+            email: document.getElementById('userEmail').value,
+            password: document.getElementById('userPassword').value || null,
+            role: document.getElementById('userRoleSelect').value
+        };
+        try {
+            if (id) await apiCall('/users/' + id, 'PUT', body);
+            else await apiCall('/users', 'POST', body);
+            bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+            showAlert('User saved successfully');
+            loadUsers();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    async function deleteUser(id) {
+        if (!confirm('Deactivate this user?')) return;
+        try {
+            await apiCall('/users/' + id, 'DELETE');
+            showAlert('User deactivated');
+            loadUsers();
+        } catch (e) { showAlert(e.message, 'danger'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadUsers);
+</script>
+</body>
+</html>
